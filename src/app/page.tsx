@@ -1,103 +1,182 @@
+'use client';
+
 import Image from "next/image";
+import { useEffect, useState } from "react";
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [scrollY, setScrollY] = useState(0);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  /* 
+   * ANIMATION SEQUENCE:
+   * PHASE 1 (0-600px): DIET letters appear with blur effect
+   * PHASE 2 (600-1100px): White text moves up and fades out  
+   * PHASE 3 (1200-2000px): Coke image appears at bottom
+   */
+
+  // Calculate individual letter progress - PHASE 1: Letters appear first
+  const getLetterProgress = (index: number, totalLetters: number) => {
+    // Phase 1: Letters appear early in scroll (0-600px)
+    const letterStart = (index / totalLetters) * 400; // Each letter starts earlier
+    const letterEnd = letterStart + 150; // Each letter animates over 150px
+    return Math.max(0, Math.min(1, (scrollY - letterStart) / (letterEnd - letterStart)));
+  };
+
+  // Calculate white text scroll animation - PHASE 2: After DIET letters are complete
+  const getWhiteTextTransform = () => {
+    // Phase 2: White text moves up after DIET letters are fully visible (600-1100px)
+    const scrollProgress = Math.max(0, (scrollY - 600) / 500); // Start at 600px scroll, complete by 1100px
+    const translateY = scrollProgress * -100; // Move up by 100vh
+    const opacity = Math.max(0, 1 - scrollProgress * 2); // Fade out faster
+    return { translateY, opacity };
+  };
+
+
+
+  // Calculate image position - PHASE 3: Image appears after white text is gone
+  const getImagePosition = () => {
+    // Phase 3: Image appears after white text has moved up (1200px onwards)
+    const imageScrollStart = 1200; // Start after white text is gone
+    const imageScrollEnd = 2000; // Fully positioned over 800px of scroll
+    
+    const scrollProgress = Math.max(0, Math.min(1, (scrollY - imageScrollStart) / (imageScrollEnd - imageScrollStart)));
+    
+    // Image starts hidden below viewport and moves to bottom center when fully scrolled
+    const translateY = (1 - scrollProgress) * 400 - 200; // Start 400px below viewport, move up 200px
+    const opacity = Math.min(1, scrollProgress * 1.5); // Fade in gradually
+    const scale = 0.7 + (scrollProgress * 0.3); // Scale from 70% to 100%
+    
+    return {
+      opacity,
+      scale,
+      translateY: translateY
+    };
+  };
+
+  // Check if text should be behind image (when they hit center)
+  const shouldTextBeBehind = () => {
+    // Check if image is visible and letters are hitting the center
+    const imageVisible = imagePosition.opacity > 0.1; // Image has started appearing
+    
+    // Check if any letter has reached decent visibility (center hit)
+    const lettersAtCenter = dietLetters.some((_, index) => 
+      getLetterProgress(index, dietLetters.length) > 0.5
+    );
+    
+    // Text goes behind immediately when both conditions are met
+    return imageVisible && lettersAtCenter;
+  };
+
+  // Check if image and text have fully merged at bottom (for final transformation)
+  const isFullyMerged = () => {
+    // When image is at full opacity and scale, and letters are fully visible
+    const imageAtBottom = imagePosition.opacity >= 0.9 && imagePosition.scale >= 0.9;
+    const allLettersComplete = dietLetters.every((_, index) => 
+      getLetterProgress(index, dietLetters.length) >= 0.9
+    );
+    return imageAtBottom && allLettersComplete;
+  };
+  
+  const dietLetters = ["D", "I", "E", "T"];
+  
+  const whiteTextTransform = getWhiteTextTransform();
+  const imagePosition = getImagePosition();
+  const textBehindImage = shouldTextBeBehind();
+  const fullyMerged = isFullyMerged();
+
+  return (
+    <div 
+      className="min-h-[400vh] transition-colors duration-1000"
+      style={{
+        backgroundColor: fullyMerged ? '#000000' : '#DC2626' // Black when merged, red otherwise
+      }}
+    >
+      <div className="flex flex-col items-center justify-center h-screen p-8 sticky top-0 relative overflow-hidden">
+        
+        {/* White text that scrolls up */}
+        <div 
+          className="flex flex-wrap justify-center items-center gap-x-4 gap-y-2 text-center max-w-6xl relative z-20"
+          style={{
+            transform: `translateY(${whiteTextTransform.translateY}vh)`,
+            opacity: whiteTextTransform.opacity,
+            transition: 'none'
+          }}
+        >
+          <span className="opacity-0 animate-fade-in text-4xl md:text-6xl lg:text-8xl text-white uppercase tracking-wider" style={{fontFamily: 'Impact, Arial Black, sans-serif', animationDelay: '0ms'}}>
+            With
+          </span>
+          <span className="opacity-0 animate-fade-in text-4xl md:text-6xl lg:text-8xl text-white uppercase tracking-wider" style={{fontFamily: 'Impact, Arial Black, sans-serif', animationDelay: '400ms'}}>
+            great
+          </span>
+          <span className="opacity-0 animate-fade-in text-4xl md:text-6xl lg:text-8xl text-white uppercase tracking-wider" style={{fontFamily: 'Impact, Arial Black, sans-serif', animationDelay: '800ms'}}>
+            power
+          </span>
+          <span className="opacity-0 animate-fade-in text-4xl md:text-6xl lg:text-8xl text-white uppercase tracking-wider" style={{fontFamily: 'Impact, Arial Black, sans-serif', animationDelay: '1200ms'}}>
+            comes
+          </span>
+          <span className="opacity-0 animate-fade-in text-4xl md:text-6xl lg:text-8xl text-white uppercase tracking-wider" style={{fontFamily: 'Impact, Arial Black, sans-serif', animationDelay: '1600ms'}}>
+            COKE
+          </span>
+         
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+        
+        {/* Coke Image - positioned at bottom of viewport when scrolled to bottom */}
+        <div 
+          className="absolute bottom-0 left-1/2"
+          style={{
+            transform: `translate(-50%, ${imagePosition.translateY}px) scale(${imagePosition.scale})`,
+            opacity: imagePosition.opacity,
+            transition: 'none',
+            transformOrigin: 'center bottom',
+            zIndex: textBehindImage ? 20 : 10 // Higher z-index when text should be behind
+          }}
         >
           <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+            src={fullyMerged ? "/3d/coke2.png" : "/3d/coke1.png"}
+            alt="Coca Cola Bottle"
+            width={400}
+            height={600}
+            className="object-contain transition-all duration-1000"
+            priority
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+        </div>
+        
+        {/* DIET letters that overlay on the image */}
+        <div 
+          className="absolute inset-0 flex flex-wrap justify-center items-center gap-x-4 gap-y-2 text-center pointer-events-none"
+          style={{
+            zIndex: textBehindImage ? 15 : 30 // Lower z-index when behind image
+          }}
         >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          {dietLetters.map((letter, index) => {
+            const letterProgress = getLetterProgress(index, dietLetters.length);
+            return (
+              <span 
+                key={index}
+                className="text-10xl md:text-[12rem] lg:text-[16rem] xl:text-[20rem] uppercase tracking-wider transition-colors duration-1000"
+                style={{
+                  fontFamily: 'DER B CARNAGE, sans-serif', 
+                  fontWeight: 'bold',
+                  opacity: letterProgress,
+                  filter: `blur(${Math.max(0, 12 - letterProgress * 12)}px)`,
+                  transform: `scale(${0.7 + letterProgress * 0.3})`,
+                  transition: 'none',
+                  textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
+                  WebkitTextStroke: '2px rgba(255,255,255,0.1)',
+                  color: fullyMerged ? '#DC2626' : '#000000' // Red when merged, black otherwise
+                }}
+              >
+                {letter}
+              </span>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
