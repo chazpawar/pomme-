@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import Spincock from "./bottom/spincock";
+
 
 export default function Home() {
   const [scrollY, setScrollY] = useState(0);
@@ -82,20 +84,21 @@ export default function Home() {
     return imageAtBottom && allLettersComplete;
   };
   
-  const dietLetters = ["D", "I", "E", "T"];
+  const dietLetters = ["D", "i", "e", "t"];
   
   const whiteTextTransform = getWhiteTextTransform();
   const imagePosition = getImagePosition();
   const textBehindImage = shouldTextBeBehind();
   const fullyMerged = isFullyMerged();
 
-  return (
-    <div 
-      className="min-h-[400vh] transition-colors duration-1000"
-      style={{
-        backgroundColor: fullyMerged ? '#000000' : '#DC2626' // Black when merged, red otherwise
-      }}
-    >
+    return (
+    <>
+      <div 
+        className="min-h-[400vh] transition-colors duration-1000"
+        style={{
+          backgroundColor: fullyMerged ? '#000000' : '#DC2626' // Black when merged, red otherwise
+        }}
+      >
       <div className="flex flex-col items-center justify-center h-screen p-8 sticky top-0 relative overflow-hidden">
         
         {/* White text that scrolls up */}
@@ -158,10 +161,10 @@ export default function Home() {
             return (
               <span 
                 key={index}
-                className="text-10xl md:text-[12rem] lg:text-[16rem] xl:text-[20rem] uppercase tracking-wider transition-colors duration-1000"
+                className="text-10xl md:text-[12rem] lg:text-[16rem] xl:text-[20rem] tracking-wider transition-colors duration-1000"
                 style={{
-                  fontFamily: 'DER B CARNAGE, sans-serif', 
-                  fontWeight: 'bold',
+                  fontFamily: "'Loki Cola', sans-serif", 
+                  fontWeight: 'normal',
                   opacity: letterProgress,
                   filter: `blur(${Math.max(0, 12 - letterProgress * 12)}px)`,
                   transform: `scale(${0.7 + letterProgress * 0.3})`,
@@ -177,6 +180,11 @@ export default function Home() {
           })}
         </div>
       </div>
-    </div>
-  );
+       
+      </div>
+      
+      {/* Spincock Component */}
+      <Spincock />
+    </>
+    );
 }
